@@ -6,7 +6,7 @@
 import { Platform } from 'react-native';
 
 const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+const tintColorDark = '#00D9FF'; // Cyan for e-bike theme
 
 export const Colors = {
   light: {
@@ -16,14 +16,36 @@ export const Colors = {
     icon: '#687076',
     tabIconDefault: '#687076',
     tabIconSelected: tintColorLight,
+    // E-bike specific colors
+    primary: '#0a7ea4',
+    secondary: '#00D9FF',
+    batteryHigh: '#00C853', // Green > 50%
+    batteryMedium: '#FFC107', // Yellow 20-50%
+    batteryLow: '#F44336', // Red < 20%
+    modeOff: '#9E9E9E',
+    modeAutomatic: '#2196F3',
+    modeHillClimb: '#FF9800',
+    cardBackground: '#F5F5F5',
+    border: '#E0E0E0',
   },
   dark: {
     text: '#ECEDEE',
-    background: '#151718',
+    background: '#0A0E27', // Dark blue-black like reference
     tint: tintColorDark,
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
+    // E-bike specific colors
+    primary: '#00D9FF',
+    secondary: '#0a7ea4',
+    batteryHigh: '#00E676',
+    batteryMedium: '#FFD54F',
+    batteryLow: '#FF5252',
+    modeOff: '#616161',
+    modeAutomatic: '#42A5F5',
+    modeHillClimb: '#FFB74D',
+    cardBackground: '#1A1F3A',
+    border: '#2C3E50',
   },
 };
 
