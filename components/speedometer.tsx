@@ -17,7 +17,6 @@ interface SpeedometerProps {
 export function Speedometer({ speed, maxSpeed = 50, unit = 'km/h' }: SpeedometerProps) {
   const animatedValue = useRef(new Animated.Value(0)).current;
   const primaryColor = useThemeColor({}, 'primary' as any);
-  const textColor = useThemeColor({}, 'text');
   const borderColor = useThemeColor({}, 'border' as any);
 
   useEffect(() => {
@@ -27,6 +26,7 @@ export function Speedometer({ speed, maxSpeed = 50, unit = 'km/h' }: Speedometer
       friction: 8,
       tension: 40,
     }).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [speed]);
 
   const displaySpeed = Math.round(speed);

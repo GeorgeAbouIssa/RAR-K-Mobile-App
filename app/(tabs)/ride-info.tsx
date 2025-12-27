@@ -5,7 +5,6 @@ import { ThemedView } from '@/components/themed-view';
 import { RideHistoryCard } from '@/components/ride-history-card';
 import { StatCard } from '@/components/stat-card';
 import { useRides } from '@/hooks/use-rides';
-import { Ride } from '@/types/ride';
 
 export default function RideInfoScreen() {
   const { rides, loading, error, refresh, getStatistics } = useRides();
@@ -21,6 +20,7 @@ export default function RideInfoScreen() {
   // Load statistics
   useEffect(() => {
     loadStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rides]);
 
   const loadStats = async () => {
@@ -48,9 +48,7 @@ export default function RideInfoScreen() {
 
   // Generate some sample rides if none exist (for demo)
   useEffect(() => {
-    if (rides.length === 0) {
-      // Could add sample data here for demonstration
-    }
+    // Could add sample data here for demonstration
   }, []);
 
   return (

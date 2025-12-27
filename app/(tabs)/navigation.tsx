@@ -21,12 +21,16 @@ export default function NavigationScreen() {
 
   // Get current location on mount
   useEffect(() => {
-    if (!hasPermission) {
-      requestPermission();
-    } else {
-      getCurrentLocation();
-    }
-  }, [hasPermission]);
+    const initLocation = async () => {
+      if (!hasPermission) {
+        await requestPermission();
+      } else {
+        await getCurrentLocation();
+      }
+    };
+    initLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSetDestination = async () => {
     // For demo purposes, set a destination near current location

@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
 import { ThemedView } from './themed-view';
 import { useColorScheme } from '@/hooks/use-color-scheme';
