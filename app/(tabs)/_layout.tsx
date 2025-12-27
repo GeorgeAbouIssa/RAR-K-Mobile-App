@@ -19,15 +19,28 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'Dashboard',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="gauge.with.dots.needle.67percent" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="ride-info"
+        options={{
+          title: 'Rides',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="list.bullet.clipboard" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="navigation"
+        options={{
+          title: 'Navigate',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="map" color={color} />,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          href: null, // Hide from tab bar
         }}
       />
     </Tabs>

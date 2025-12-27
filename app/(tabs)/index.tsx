@@ -1,88 +1,176 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, ScrollView, View, Platform } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { Speedometer } from '@/components/speedometer';
+import { BatteryIndicator } from '@/components/battery-indicator';
+import { AssistanceModeSelector } from '@/components/assistance-mode-selector';
+import { StatCard } from '@/components/stat-card';
+import { useBikeData } from '@/hooks/use-bike-data';
+import { useLocation } from '@/hooks/use-location';
+import { weatherService } from '@/services/weather-api';
+import { bikeConnection } from '@/services/bike-connection';
 
-export default function HomeScreen() {
+export default function DashboardScreen() {
+  const { bikeData, isConnected, setAssistanceMode } = useBikeData();
+  const { location } = useLocation();
+  const [temperature, setTemperature] = useState<number | undefined>();
+
+  // Fetch weather data
+  useEffect(() => {
+    if (location) {
+      weatherService
+        .getWeather(location.latitude, location.longitude)
+        .then((data) => {
+          if (data) {
+            setTemperature(data.temperature);
+            bikeConnection.setTemperature(data.temperature);
+          }
+        })
+        .catch((err) => console.error('Weather fetch error:', err));
+    }
+  }, [location]);
+
+  const formatTime = () => {
+    return new Date().toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <ThemedView style={styles.container}>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <ThemedText type="title">E-Bike Dashboard</ThemedText>
+          <ThemedText style={styles.time}>{formatTime()}</ThemedText>
+        </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        {/* Connection status */}
+        {!isConnected && (
+          <ThemedView style={styles.statusBanner}>
+            <ThemedText style={styles.statusText}>
+              ⚠️ Connecting to bike...
+            </ThemedText>
+          </ThemedView>
+        )}
+
+        {/* Main Speedometer */}
+        <Speedometer speed={bikeData.speed} />
+
+        {/* Battery indicator */}
+        <View style={styles.batterySection}>
+          <ThemedText style={styles.sectionTitle}>Battery/Supercapacitor</ThemedText>
+          <BatteryIndicator level={bikeData.batteryLevel} />
+        </View>
+
+        {/* Assistance Mode Selector */}
+        <AssistanceModeSelector
+          mode={bikeData.assistanceMode}
+          onModeChange={setAssistanceMode}
+        />
+
+        {/* Metrics Grid */}
+        <View style={styles.metricsGrid}>
+          <View style={styles.metricsRow}>
+            <StatCard label="Power" value={Math.round(bikeData.power)} unit="W" icon="⚡" />
+            <StatCard 
+              label="Cadence" 
+              value={Math.round(bikeData.cadence)} 
+              unit="RPM" 
+              icon="🔄" 
+            />
+          </View>
+          <View style={styles.metricsRow}>
+            <StatCard 
+              label="Torque" 
+              value={bikeData.torque.toFixed(1)} 
+              unit="Nm" 
+              icon="💪" 
+            />
+            {temperature !== undefined && (
+              <StatCard 
+                label="Weather" 
+                value={temperature} 
+                unit="°C" 
+                icon="🌡️" 
+              />
+            )}
+          </View>
+        </View>
+
+        {/* Motor Status */}
+        <View style={styles.statusSection}>
+          <ThemedText style={styles.motorStatus}>
+            Motor: {bikeData.motorActive ? '🟢 Active' : '⚫ Inactive'}
+          </ThemedText>
+        </View>
+      </ScrollView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  container: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  contentContainer: {
+    padding: 16,
+    paddingTop: Platform.OS === 'ios' ? 60 : 16,
+  },
+  header: {
+    marginBottom: 24,
     alignItems: 'center',
-    gap: 8,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  time: {
+    fontSize: 16,
+    marginTop: 8,
+    opacity: 0.7,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  statusBanner: {
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  batterySection: {
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 12,
+    opacity: 0.7,
+  },
+  metricsGrid: {
+    marginTop: 24,
+    gap: 12,
+  },
+  metricsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  statusSection: {
+    marginTop: 24,
+    marginBottom: 40,
+    alignItems: 'center',
+  },
+  motorStatus: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
+
