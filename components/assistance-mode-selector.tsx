@@ -15,10 +15,10 @@ interface AssistanceModeSelectorProps {
   onModeChange: (mode: BikeData['assistanceMode']) => void;
 }
 
-const modes: { value: BikeData['assistanceMode']; label: string; icon: string }[] = [
+const modes:  { value: BikeData['assistanceMode']; label: string; icon: string }[] = [
   { value: 'off', label: 'OFF', icon: '⭕' },
-  { value: 'automatic', label: 'AUTO', icon: '⚡' },
-  { value: 'hillClimb', label: 'CLIMB', icon: '⛰️' },
+  { value:  'automatic', label: 'AUTO', icon: '🤖' },
+  { value:  'hillClimb', label: 'CLIMB', icon: '⛰️' },
 ];
 
 export function AssistanceModeSelector({ mode, onModeChange }: AssistanceModeSelectorProps) {
@@ -27,6 +27,7 @@ export function AssistanceModeSelector({ mode, onModeChange }: AssistanceModeSel
   const modeHillClimb = useThemeColor({}, 'modeHillClimb' as any);
   const cardBackground = useThemeColor({}, 'cardBackground' as any);
   const borderColor = useThemeColor({}, 'border' as any);
+  const textColor = useThemeColor({}, 'text');
   const selectedTextColor = useThemeColor({ light: '#fff', dark: '#fff' }, 'text');
 
   const getModeColor = (modeValue: BikeData['assistanceMode']) => {
@@ -50,10 +51,10 @@ export function AssistanceModeSelector({ mode, onModeChange }: AssistanceModeSel
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <View style={styles.container}>
       <ThemedText style={styles.title}>Assistance Mode</ThemedText>
       <View style={styles.modesContainer}>
-        {modes.map((modeOption) => {
+        {modes. map((modeOption) => {
           const isSelected = mode === modeOption.value;
           const modeColor = getModeColor(modeOption.value);
 
@@ -62,23 +63,33 @@ export function AssistanceModeSelector({ mode, onModeChange }: AssistanceModeSel
               key={modeOption.value}
               onPress={() => handleModePress(modeOption.value)}
               style={({ pressed }) => [
-                styles.modeButton,
+                styles. modeButton,
                 {
-                  backgroundColor: isSelected ? modeColor : cardBackground,
+                  backgroundColor: isSelected ?  modeColor : cardBackground,
                   borderColor: isSelected ? modeColor : borderColor,
                   opacity: pressed ? 0.7 : 1,
                 },
               ]}
             >
-              <ThemedText style={[styles.modeIcon, { opacity: isSelected ? 1 : 0.5 }]}>
-                {modeOption.icon}
-              </ThemedText>
+              <View style={styles.iconContainer}>
+                <ThemedText 
+                  style={[
+                    styles.modeIcon, 
+                    { 
+                      opacity: isSelected ? 1 :  0.5,
+                    }
+                  ]}
+                >
+                  {modeOption.icon}
+                </ThemedText>
+              </View>
               <ThemedText
                 style={[
                   styles.modeLabel,
                   {
-                    color: isSelected ? selectedTextColor : undefined,
+                    color: isSelected ?  selectedTextColor : textColor,
                     fontWeight: isSelected ? '700' : '600',
+                    opacity: isSelected ? 1 : 0.7,
                   },
                 ]}
               >
@@ -88,38 +99,54 @@ export function AssistanceModeSelector({ mode, onModeChange }: AssistanceModeSel
           );
         })}
       </View>
-    </ThemedView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    backgroundColor: 'transparent',
   },
   title: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: '600',
-    marginBottom: 12,
+    marginBottom: 16,
+    textAlign: 'center',
+    opacity: 0.7,
   },
   modesContainer: {
     flexDirection: 'row',
     gap: 12,
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    maxWidth: 400,
+    width: '100%',
   },
   modeButton: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 12,
     borderRadius: 12,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
+    maxWidth: 120,
+    overflow: 'visible', // Changed from 'hidden' to 'visible'
+  },
+  iconContainer:  {
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
   },
   modeIcon: {
-    fontSize: 24,
-    marginBottom: 6,
+    fontSize: 26,
+    lineHeight: 32,
   },
   modeLabel: {
     fontSize: 12,
+    textAlign: 'center',
   },
 });

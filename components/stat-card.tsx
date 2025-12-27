@@ -9,35 +9,41 @@ import { ThemedView } from './themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 interface StatCardProps {
-  label: string;
+  label:  string;
   value: string | number;
   unit?: string;
   icon?: string;
   size?: 'small' | 'medium' | 'large';
 }
 
-export function StatCard({ label, value, unit, icon, size = 'medium' }: StatCardProps) {
+export function StatCard({ label, value, unit, icon, size = 'medium' }:  StatCardProps) {
   const cardBackground = useThemeColor({}, 'cardBackground' as any);
   const borderColor = useThemeColor({}, 'border' as any);
 
   const sizeStyles = {
-    small: {
+    small:  {
       padding: 12,
+      minHeight: 100,
       valueSize: 20,
       labelSize: 12,
       unitSize: 12,
+      iconSize: 20,
     },
-    medium: {
+    medium:  {
       padding: 16,
+      minHeight: 120,
       valueSize: 28,
       labelSize: 14,
       unitSize: 14,
+      iconSize: 24,
     },
-    large: {
+    large:  {
       padding: 20,
+      minHeight: 140,
       valueSize: 36,
       labelSize: 16,
       unitSize: 16,
+      iconSize: 28,
     },
   };
 
@@ -51,10 +57,15 @@ export function StatCard({ label, value, unit, icon, size = 'medium' }: StatCard
           backgroundColor: cardBackground,
           borderColor: borderColor,
           padding: currentSize.padding,
+          minHeight: currentSize.minHeight,
         },
       ]}
     >
-      {icon && <ThemedText style={styles.icon}>{icon}</ThemedText>}
+      {icon && (
+        <ThemedText style={[styles.icon, { fontSize: currentSize.iconSize }]}>
+          {icon}
+        </ThemedText>
+      )}
       <View style={styles.content}>
         <ThemedText style={[styles.label, { fontSize: currentSize.labelSize }]}>
           {label}
@@ -76,25 +87,29 @@ export function StatCard({ label, value, unit, icon, size = 'medium' }: StatCard
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     borderRadius: 12,
     borderWidth: 1,
-    minWidth: 100,
+    minWidth: 0, // Allow flex to work properly
+    justifyContent: 'space-between',
   },
   icon: {
-    fontSize: 24,
     marginBottom: 8,
   },
   content: {
     gap: 4,
+    flex: 1,
+    justifyContent: 'center',
   },
-  label: {
+  label:  {
     opacity: 0.7,
     fontWeight: '500',
   },
   valueContainer: {
-    flexDirection: 'row',
+    flexDirection:  'row',
     alignItems: 'baseline',
     gap: 4,
+    flexWrap: 'wrap',
   },
   value: {
     fontWeight: 'bold',

@@ -47,7 +47,7 @@ export default function DashboardScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <ThemedText type="title">E-Bike Dashboard</ThemedText>
+          <ThemedText type="title">RAR-Kit</ThemedText>
           <ThemedText style={styles.time}>{formatTime()}</ThemedText>
         </View>
 
@@ -65,7 +65,7 @@ export default function DashboardScreen() {
 
         {/* Battery indicator */}
         <View style={styles.batterySection}>
-          <ThemedText style={styles.sectionTitle}>Battery/Supercapacitor</ThemedText>
+          <ThemedText style={styles.sectionTitle}>Hybrid Supercapacitor</ThemedText>
           <BatteryIndicator level={bikeData.batteryLevel} />
         </View>
 
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     marginVertical: 24,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 20,
     fontWeight: '600',
     marginBottom: 12,
     opacity: 0.7,

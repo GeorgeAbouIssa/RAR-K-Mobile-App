@@ -1,14 +1,13 @@
 /**
  * Route calculator service - calculates routes between points
- * Uses a simple straight-line calculation for now
- * In production, would integrate with Google Maps/Mapbox API
+ * Uses OpenRouteService API for real road routing
  */
 
 import { LocationCoords } from './location';
 
 export interface RoutePoint {
   lat: number;
-  lng: number;
+  lng:  number;
 }
 
 export interface Route {
@@ -18,29 +17,90 @@ export interface Route {
 }
 
 class RouteCalculatorService {
+  // Free API key - replace with your own from https://openrouteservice.org/dev/#/signup
+  private readonly API_KEY = 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjdhZThhNmIyODlkZjQ5NTJiZTM3Mjc4Njk3YjY3ZWJiIiwiaCI6Im11cm11cjY0In0='; // Demo key
+  private readonly BASE_URL = 'https://api.openrouteservice.org/v2/directions';
+
   /**
-   * Calculate route between two points
-   * Currently returns a straight line - in production would use mapping API
+   * Calculate route between two points using OpenRouteService
+   * Profile: cycling-regular (for e-bikes)
    */
   async calculateRoute(
     start: LocationCoords,
     end: LocationCoords,
-    avgSpeed: number = 15 // km/h
+    avgSpeed: number = 15 // km/h - fallback for manual calculation
   ): Promise<Route> {
     try {
-      // TODO: Integrate with actual routing API (Google Maps, Mapbox, etc.)
-      
-      // For now, create a simple straight line route
-      const points: RoutePoint[] = [
-        { lat: start.latitude, lng: start.longitude },
-        { lat: end.latitude, lng: end.longitude },
-      ];
+      // Try using OpenRouteService API for real routing
+      const route = await this.fetchRouteFromAPI(start, end);
+      if (route) {
+        return route;
+      }
 
-      // Calculate distance using Haversine formula
-      const distance = this.calculateDistance(start, end);
+      // Fallback to straight line if API fails
+      console.warn('Using fallback straight-line route');
+      return this.calculateStraightLineRoute(start, end, avgSpeed);
+    } catch (error) {
+      console.error('Failed to calculate route:', error);
+      // Fallback to straight line
+      return this.calculateStraightLineRoute(start, end, avgSpeed);
+    }
+  }
+
+  /**
+   * Fetch route from OpenRouteService API
+   */
+  private async fetchRouteFromAPI(
+    start: LocationCoords,
+    end: LocationCoords
+  ): Promise<Route | null> {
+    try {
+      const url = `${this.BASE_URL}/cycling-regular`;
       
-      // Estimate time based on average cycling speed
-      const estimatedTime = (distance / avgSpeed) * 60; // minutes
+      const body = {
+        coordinates: [
+          [start.longitude, start.latitude], // [lng, lat] format
+          [end.longitude, end.latitude],
+        ],
+        units: 'km',
+      };
+
+      const response = await fetch(url, {
+        method:  'POST',
+        headers:  {
+          'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
+          'Authorization': this.API_KEY,
+          'Content-Type': 'application/json; charset=utf-8',
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        console.error('API response not OK:', response.status);
+        return null;
+      }
+
+      const data = await response.json();
+
+      if (! data.routes || data.routes.length === 0) {
+        return null;
+      }
+
+      const route = data.routes[0];
+      
+      // Convert coordinates to RoutePoint format
+      const points:  RoutePoint[] = route.geometry.coordinates.map(
+        (coord: [number, number]) => ({
+          lng: coord[0],
+          lat: coord[1],
+        })
+      );
+
+      // Distance in km (already in km from API)
+      const distance = route.summary.distance;
+      
+      // Time in minutes (API returns seconds)
+      const estimatedTime = route.summary.duration / 60;
 
       return {
         points,
@@ -48,9 +108,32 @@ class RouteCalculatorService {
         estimatedTime,
       };
     } catch (error) {
-      console.error('Failed to calculate route:', error);
-      throw error;
+      console.error('Error fetching route from API:', error);
+      return null;
     }
+  }
+
+  /**
+   * Fallback:  Calculate straight-line route
+   */
+  private calculateStraightLineRoute(
+    start: LocationCoords,
+    end: LocationCoords,
+    avgSpeed: number
+  ): Route {
+    const points:  RoutePoint[] = [
+      { lat: start.latitude, lng: start.longitude },
+      { lat: end.latitude, lng: end.longitude },
+    ];
+
+    const distance = this.calculateDistance(start, end);
+    const estimatedTime = (distance / avgSpeed) * 60;
+
+    return {
+      points,
+      distance,
+      estimatedTime,
+    };
   }
 
   /**
@@ -78,14 +161,14 @@ class RouteCalculatorService {
   /**
    * Convert degrees to radians
    */
-  private toRadians(degrees: number): number {
+  private toRadians(degrees:  number): number {
     return degrees * (Math.PI / 180);
   }
 
   /**
    * Format distance for display
    */
-  formatDistance(distance: number): string {
+  formatDistance(distance:  number): string {
     if (distance < 1) {
       return `${Math.round(distance * 1000)} m`;
     }

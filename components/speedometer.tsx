@@ -24,35 +24,25 @@ export function Speedometer({ speed, maxSpeed = 50, unit = 'km/h' }: Speedometer
       toValue: speed,
       useNativeDriver: false,
       friction: 8,
-      tension: 40,
+      tension:  40,
     }).start();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [speed]);
+  }, [speed, animatedValue]);
 
   const displaySpeed = Math.round(speed);
 
   return (
     <ThemedView style={styles.container}>
-      <View style={[styles.circle, { borderColor: borderColor }]}>
-        {/* Speed value */}
-        <ThemedText style={styles.speedText}>{displaySpeed}</ThemedText>
-        <ThemedText style={styles.unitText}>{unit}</ThemedText>
-        
-        {/* Optional: Add a circular progress indicator */}
+      <View style={styles.speedometerWrapper}>
+        {/* Progress ring - now behind the circle */}
         <View style={[styles.progressRing, { borderColor: borderColor }]}>
-          <View 
-            style={[
-              styles.progressFill, 
-              { 
-                borderColor: primaryColor,
-                transform: [
-                  { 
-                    rotate: `${Math.min((speed / maxSpeed) * 360, 360)}deg` 
-                  }
-                ]
-              }
-            ]} 
-          />
+        </View>
+
+        {/* Main circle with speed display */}
+        <View style={[styles.circle, { borderColor: borderColor }]}>
+          <View style={styles.speedContainer}>
+            <ThemedText style={styles.speedText}>{displaySpeed}</ThemedText>
+            <ThemedText style={styles.unitText}>{unit}</ThemedText>
+          </View>
         </View>
       </View>
     </ThemedView>
@@ -62,40 +52,52 @@ export function Speedometer({ speed, maxSpeed = 50, unit = 'km/h' }: Speedometer
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
+    justifyContent:  'center',
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+  },
+  speedometerWrapper: {
+    width: 220,
+    height: 220,
+    alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    position: 'relative',
+  },
+  progressRing: {
+    position: 'absolute',
+    width: 216,
+    height: 216,
+    borderRadius: 108,
+    borderWidth: 6,
+    opacity: 0.3,
   },
   circle: {
     width: 200,
     height: 200,
     borderRadius: 100,
-    borderWidth: 8,
+    borderWidth: 3,
+    borderColor: '#000',
+    alignItems: 'center',
+    justifyContent:  'center',
+    backgroundColor: 'transparent',
+  },
+  speedContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
+    paddingTop: 10,
   },
   speedText: {
-    fontSize: 64,
-    fontWeight: 'bold',
+    fontSize: 80,
+    fontWeight: '700',
+    lineHeight: 64,
+    letterSpacing: -5,
+    marginBottom: 3,
+    alignSelf: 'center',
   },
   unitText: {
-    fontSize: 18,
-    marginTop: 4,
+    fontSize: 20,
+    fontWeight: '500',
     opacity: 0.7,
-  },
-  progressRing: {
-    position: 'absolute',
-    width: 184,
-    height: 184,
-    borderRadius: 92,
-    borderWidth: 4,
-  },
-  progressFill: {
-    position: 'absolute',
-    width: 184,
-    height: 184,
-    borderRadius: 92,
-    borderWidth: 4,
-    borderColor: 'transparent',
+    alignSelf: 'center',
   },
 });
