@@ -52,8 +52,8 @@ class WeatherService {
     } catch (error) {
       console.error('Failed to fetch weather:', error);
       
-      // Return mock data for development if API fails
-      if (BikeConfig.weather.apiKey === 'demo') {
+      // Return mock data for development (when API key is not configured)
+      if (!BikeConfig.weather.apiKey || BikeConfig.weather.apiKey === 'demo') {
         const mockData: WeatherData = {
           temperature: 22,
           condition: 'Clear',

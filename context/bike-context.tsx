@@ -47,6 +47,9 @@ export function BikeProvider({ children }: BikeProviderProps) {
   const [isRideActive, setIsRideActive] = useState(false);
   const [rideStartTime, setRideStartTime] = useState<number>(0);
 
+  // Update interval for metrics calculation (in seconds)
+  const METRICS_UPDATE_INTERVAL = 0.5;
+
   // Subscribe to bike data updates
   useEffect(() => {
     if (!isConnected) return;
@@ -61,11 +64,12 @@ export function BikeProvider({ children }: BikeProviderProps) {
         
         setRealtimeMetrics((prev) => ({
           currentSpeed: data.speed,
-          distance: prev.distance + (data.speed / 3600) * 0.5, // Approximate
+          // Calculate distance: speed (km/h) * update interval (s) / 3600 (s/h)
+          distance: prev.distance + (data.speed / 3600) * METRICS_UPDATE_INTERVAL,
           duration,
           calories: prev.calories, // Updated by calories service
           assistanceTime: data.motorActive 
-            ? prev.assistanceTime + 0.5 
+            ? prev.assistanceTime + METRICS_UPDATE_INTERVAL 
             : prev.assistanceTime,
         }));
       }

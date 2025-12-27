@@ -27,6 +27,7 @@ export function AssistanceModeSelector({ mode, onModeChange }: AssistanceModeSel
   const modeHillClimb = useThemeColor({}, 'modeHillClimb' as any);
   const cardBackground = useThemeColor({}, 'cardBackground' as any);
   const borderColor = useThemeColor({}, 'border' as any);
+  const selectedTextColor = useThemeColor({ light: '#fff', dark: '#fff' }, 'text');
 
   const getModeColor = (modeValue: BikeData['assistanceMode']) => {
     switch (modeValue) {
@@ -76,7 +77,7 @@ export function AssistanceModeSelector({ mode, onModeChange }: AssistanceModeSel
                 style={[
                   styles.modeLabel,
                   {
-                    color: isSelected ? '#fff' : undefined,
+                    color: isSelected ? selectedTextColor : undefined,
                     fontWeight: isSelected ? '700' : '600',
                   },
                 ]}
