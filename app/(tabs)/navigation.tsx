@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 20,
+    top: Platform.OS === 'ios' || Platform.OS === 'android' ? 60 : 20,
     left: 16,
     right: 16,
   },

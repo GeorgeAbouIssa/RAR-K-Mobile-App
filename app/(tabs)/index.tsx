@@ -85,14 +85,14 @@ export default function DashboardScreen() {
               unit="RPM" 
               icon="🔄" 
             />
-          </View>
-          <View style={styles.metricsRow}>
             <StatCard 
               label="Torque" 
               value={bikeData.torque.toFixed(1)} 
               unit="Nm" 
               icon="💪" 
             />
+          </View>
+          <View style={styles.metricsRow}>
             {temperature !== undefined && (
               <StatCard 
                 label="Weather" 
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 16,
-    paddingTop: Platform.OS === 'ios' ? 60 : 16,
+    paddingTop: Platform.OS === 'android' || Platform.OS === 'ios' ? 60 : 16,
   },
   header: {
     marginBottom: 24,

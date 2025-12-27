@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 16,
-    paddingTop: Platform.OS === 'ios' ? 60 : 16,
+    paddingTop: Platform.OS === 'android' || Platform.OS === 'ios' ? 60 : 16,
   },
   header: {
     marginBottom: 24,
