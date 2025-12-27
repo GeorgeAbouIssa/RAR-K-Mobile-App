@@ -14,6 +14,7 @@ export default function NavigationScreen() {
   const [destination, setDestination] = useState<LocationCoords | null>(null);
   const [route, setRoute] = useState<Route | null>(null);
   const [destinationInput, setDestinationInput] = useState('');
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const cardBackground = useThemeColor({}, 'cardBackground' as any);
   const borderColor = useThemeColor({}, 'border' as any);
   const textColor = useThemeColor({}, 'text');
@@ -25,7 +26,9 @@ export default function NavigationScreen() {
       if (!hasPermission) {
         await requestPermission();
       } else {
+        setIsLoadingLocation(true);
         await getCurrentLocation();
+        setIsLoadingLocation(false);
       }
     };
     initLocation();
@@ -35,15 +38,24 @@ export default function NavigationScreen() {
   const handleSetDestination = async () => {
     // For demo purposes, set a destination near current location
     // In production, would use geocoding API to convert address to coordinates
-    if (!location) {
-      Alert.alert('Location Error', 'Current location not available');
-      return;
+    
+    // Try to get current location if not available
+    let currentLocation = location;
+    if (!currentLocation) {
+      currentLocation = await getCurrentLocation();
+      if (!currentLocation) {
+        Alert.alert(
+          'Location Error', 
+          'Unable to get your current location. Please ensure location services are enabled and try again.'
+        );
+        return;
+      }
     }
 
     // Simulate destination (0.05 degrees offset = ~5.5km)
     const mockDestination: LocationCoords = {
-      latitude: location.latitude + 0.05,
-      longitude: location.longitude + 0.05,
+      latitude: currentLocation.latitude + 0.05,
+      longitude: currentLocation.longitude + 0.05,
     };
 
     setDestination(mockDestination);
@@ -51,7 +63,7 @@ export default function NavigationScreen() {
     // Calculate route
     try {
       const calculatedRoute = await routeCalculator.calculateRoute(
-        location,
+        currentLocation,
         mockDestination
       );
       setRoute(calculatedRoute);
@@ -154,6 +166,27 @@ export default function NavigationScreen() {
           </ThemedText>
         </View>
       )}
+      
+      {/* Location loading/retry button */}
+      {!location && hasPermission && (
+        <View style={[styles.locationInfo, { backgroundColor: cardBackground, borderColor }]}>
+          <ThemedText style={[styles.locationText, { marginBottom: 8 }]}>
+            {isLoadingLocation ? '📍 Getting your location...' : '📍 Location not available'}
+          </ThemedText>
+          {!isLoadingLocation && (
+            <Pressable
+              style={[styles.retryButton, { backgroundColor: primaryColor }]}
+              onPress={async () => {
+                setIsLoadingLocation(true);
+                await getCurrentLocation();
+                setIsLoadingLocation(false);
+              }}
+            >
+              <ThemedText style={styles.buttonText}>Retry</ThemedText>
+            </Pressable>
+          )}
+        </View>
+      )}
     </ThemedView>
   );
 }
@@ -218,6 +251,11 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 12,
     fontWeight: '500',
+  },
+  retryButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
   },
   permissionContainer: {
     flex: 1,
