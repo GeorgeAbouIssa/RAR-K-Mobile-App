@@ -7,18 +7,18 @@ import { LocationCoords } from './location';
 
 export interface RoutePoint {
   lat: number;
-  lng:  number;
+  lng: number;
 }
 
 export interface Route {
-  points: RoutePoint[];
-  distance: number; // km
-  estimatedTime: number; // minutes
+  points:  RoutePoint[];
+  distance:  number; // km
+  estimatedTime:  number; // minutes
 }
 
 class RouteCalculatorService {
   // Free API key - replace with your own from https://openrouteservice.org/dev/#/signup
-  private readonly API_KEY = 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjdhZThhNmIyODlkZjQ5NTJiZTM3Mjc4Njk3YjY3ZWJiIiwiaCI6Im11cm11cjY0In0='; // Demo key
+  private readonly API_KEY = '5b3ce3597851100001cf62e4ae8a6b2289df4952be3727869762b67ebb';
   private readonly BASE_URL = 'https://api.openrouteservice.org/v2/directions';
 
   /**
@@ -55,52 +55,71 @@ class RouteCalculatorService {
     end: LocationCoords
   ): Promise<Route | null> {
     try {
-      const url = `${this.BASE_URL}/cycling-regular`;
+      const url = `${this.BASE_URL}/cycling-regular/geojson`;
       
       const body = {
         coordinates: [
           [start.longitude, start.latitude], // [lng, lat] format
           [end.longitude, end.latitude],
         ],
-        units: 'km',
       };
 
+      console.log('Requesting route from:', start, 'to:', end);
+
       const response = await fetch(url, {
-        method:  'POST',
-        headers:  {
-          'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json, application/geo+json',
           'Authorization': this.API_KEY,
-          'Content-Type': 'application/json; charset=utf-8',
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(body),
       });
 
       if (!response.ok) {
-        console.error('API response not OK:', response.status);
+        const errorText = await response.text();
+        console.error('API response not OK:', response.status, errorText);
         return null;
       }
 
       const data = await response.json();
+      console.log('Route API response:', JSON.stringify(data).substring(0, 200));
 
-      if (! data.routes || data.routes.length === 0) {
+      // Check if we have features (GeoJSON format)
+      if (!data.features || data.features. length === 0) {
+        console.error('No features in response');
         return null;
       }
 
-      const route = data.routes[0];
+      const feature = data.features[0];
       
+      // Check geometry exists
+      if (!feature.geometry || !feature.geometry.coordinates) {
+        console.error('No geometry coordinates in response');
+        return null;
+      }
+
+      // Check properties exist
+      if (!feature.properties || !feature.properties.summary) {
+        console.error('No properties/summary in response');
+        return null;
+      }
+
       // Convert coordinates to RoutePoint format
-      const points:  RoutePoint[] = route.geometry.coordinates.map(
+      const points:  RoutePoint[] = feature.geometry.coordinates.map(
         (coord: [number, number]) => ({
           lng: coord[0],
           lat: coord[1],
         })
       );
 
-      // Distance in km (already in km from API)
-      const distance = route.summary.distance;
+      // Distance in km (API returns meters, convert to km)
+      const distance = feature.properties.summary.distance / 1000;
       
       // Time in minutes (API returns seconds)
-      const estimatedTime = route.summary.duration / 60;
+      const estimatedTime = feature.properties.summary.duration / 60;
+
+      console.log(`Route calculated:  ${distance.toFixed(2)}km, ${estimatedTime.toFixed(0)}min`);
 
       return {
         points,
@@ -114,20 +133,22 @@ class RouteCalculatorService {
   }
 
   /**
-   * Fallback:  Calculate straight-line route
+   * Fallback: Calculate straight-line route
    */
   private calculateStraightLineRoute(
     start: LocationCoords,
     end: LocationCoords,
     avgSpeed: number
   ): Route {
-    const points:  RoutePoint[] = [
+    const points: RoutePoint[] = [
       { lat: start.latitude, lng: start.longitude },
       { lat: end.latitude, lng: end.longitude },
     ];
 
-    const distance = this.calculateDistance(start, end);
+    const distance = this. calculateDistance(start, end);
     const estimatedTime = (distance / avgSpeed) * 60;
+
+    console.log(`Fallback route: ${distance.toFixed(2)}km, ${estimatedTime.toFixed(0)}min`);
 
     return {
       points,
@@ -149,26 +170,26 @@ class RouteCalculatorService {
 
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(this.toRadians(coord1.latitude)) *
+      Math.cos(this. toRadians(coord1.latitude)) *
         Math.cos(this.toRadians(coord2.latitude)) *
         Math.sin(dLon / 2) *
         Math.sin(dLon / 2);
 
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const c = 2 * Math.atan2(Math. sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }
 
   /**
    * Convert degrees to radians
    */
-  private toRadians(degrees:  number): number {
+  private toRadians(degrees: number): number {
     return degrees * (Math.PI / 180);
   }
 
   /**
    * Format distance for display
    */
-  formatDistance(distance:  number): string {
+  formatDistance(distance: number): string {
     if (distance < 1) {
       return `${Math.round(distance * 1000)} m`;
     }
@@ -183,7 +204,7 @@ class RouteCalculatorService {
       return `${Math.round(minutes)} min`;
     }
     const hours = Math.floor(minutes / 60);
-    const mins = Math.round(minutes % 60);
+    const mins = Math. round(minutes % 60);
     return `${hours}h ${mins}min`;
   }
 }

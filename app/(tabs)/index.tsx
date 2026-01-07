@@ -15,6 +15,16 @@ export default function DashboardScreen() {
   const { bikeData, isConnected, setAssistanceMode } = useBikeData();
   const { location } = useLocation();
   const [temperature, setTemperature] = useState<number | undefined>();
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000); // Update every 1 second
+
+    return () => clearInterval(timer); // Cleanup on unmount
+  }, []);
 
   // Fetch weather data
   useEffect(() => {
@@ -31,10 +41,12 @@ export default function DashboardScreen() {
     }
   }, [location]);
 
-  const formatTime = () => {
-    return new Date().toLocaleTimeString('en-US', {
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
+      second: '2-digit',
+      hour12: false, // 24-hour format (e.g., 14: 30 instead of 2:30 PM)
     });
   };
 
@@ -48,11 +60,11 @@ export default function DashboardScreen() {
         {/* Header */}
         <View style={styles.header}>
           <ThemedText type="title">RAR-Kit</ThemedText>
-          <ThemedText style={styles.time}>{formatTime()}</ThemedText>
+          <ThemedText style={styles.time}>{formatTime(currentTime)}</ThemedText>
         </View>
 
         {/* Connection status */}
-        {!isConnected && (
+        {! isConnected && (
           <ThemedView style={styles.statusBanner}>
             <ThemedText style={styles.statusText}>
               ⚠️ Connecting to bike...
@@ -87,7 +99,7 @@ export default function DashboardScreen() {
             />
             <StatCard 
               label="Torque" 
-              value={bikeData.torque.toFixed(1)} 
+              value={bikeData. torque.toFixed(1)} 
               unit="Nm" 
               icon="💪" 
             />
@@ -107,7 +119,7 @@ export default function DashboardScreen() {
         {/* Motor Status */}
         <View style={styles.statusSection}>
           <ThemedText style={styles.motorStatus}>
-            Motor: {bikeData.motorActive ? '🟢 Active' : '⚫ Inactive'}
+            Motor: {bikeData.motorActive ?  '🟢 Active' :  '⚫ Inactive'}
           </ThemedText>
         </View>
       </ScrollView>
@@ -117,13 +129,13 @@ export default function DashboardScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flex:  1,
   },
   scrollView: {
-    flex: 1,
+    flex:  1,
   },
   contentContainer: {
-    padding: 16,
+    padding:  16,
     paddingTop: Platform.OS === 'android' || Platform.OS === 'ios' ? 60 : 16,
   },
   header: {
@@ -163,7 +175,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
-  statusSection: {
+  statusSection:  {
     marginTop: 24,
     marginBottom: 40,
     alignItems: 'center',
@@ -173,4 +185,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-
