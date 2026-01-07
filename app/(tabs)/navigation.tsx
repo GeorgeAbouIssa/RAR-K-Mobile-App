@@ -38,20 +38,40 @@ export default function NavigationScreen() {
 
   const handleSearch = async () => {
     if (destinationInput.trim().length < 3) {
-      Alert.alert('Search Error', 'Please enter at least 3 characters');
+      setShowResults(false);
       return;
     }
 
     setIsSearching(true);
-    const results = await geocodingService.searchAddress(destinationInput);
-    setSearchResults(results);
-    setShowResults(results.length > 0);
-    setIsSearching(false);
+    try {
+      const results = await geocodingService.searchAddress(destinationInput);
+      setSearchResults(results);
+      setShowResults(results.length > 0);
 
-    if (results.length === 0) {
-      Alert.alert('No Results', 'No locations found for your search');
+      if (results.length === 0) {
+        Alert.alert('No Results', 'No locations found for your search');
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      Alert.alert('Search Error', 'Failed to search for location');
+    } finally {
+      setIsSearching(false);
     }
   };
+
+  // Auto-search as user types (debounced)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (destinationInput.trim().length >= 3 && !destination && !isSelectingOnMap) {
+        handleSearch();
+      } else if (destinationInput.trim().length < 3) {
+        setShowResults(false);
+        setSearchResults([]);
+      }
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => clearTimeout(timer);
+  }, [destinationInput]);
 
   const calculateRouteToDestination = async (dest: LocationCoords) => {
     if (!location) {
@@ -60,7 +80,7 @@ export default function NavigationScreen() {
     }
 
     try {
-      const calculatedRoute = await routeCalculator. calculateRoute(location, dest);
+      const calculatedRoute = await routeCalculator.  calculateRoute(location, dest);
       setRoute(calculatedRoute);
     } catch (error) {
       console.error('Route calculation error:', error);
@@ -68,10 +88,11 @@ export default function NavigationScreen() {
     }
   };
 
-  const handleMapPress = async (coordinate: LocationCoords) => {
+  const setDestinationAndCalculateRoute = async (coordinate: LocationCoords) => {
     setDestination(coordinate);
     setIsSelectingOnMap(false);
     setShowResults(false);
+    Keyboard.dismiss();
     
     // Reverse geocode to get address
     const address = await geocodingService.reverseGeocode(coordinate);
@@ -82,15 +103,28 @@ export default function NavigationScreen() {
     await calculateRouteToDestination(coordinate);
   };
 
+  const handleMapPress = async (coordinate: LocationCoords) => {
+    // Only respond to regular tap if in selection mode
+    if (!  isSelectingOnMap) return;
+    
+    await setDestinationAndCalculateRoute(coordinate);
+  };
+
+  const handleMapLongPress = async (coordinate: LocationCoords) => {
+    // Long press works anytime, even if not in selection mode
+    await setDestinationAndCalculateRoute(coordinate);
+  };
+
   const handleSelectSearchResult = async (result: GeocodeResult) => {
-    const dest:  LocationCoords = {
-      latitude: result.latitude,
+    const dest:   LocationCoords = {
+      latitude:  result.latitude,
       longitude: result.longitude,
     };
     
     setDestination(dest);
     setDestinationInput(result.displayName);
     setShowResults(false);
+    setSearchResults([]);
     Keyboard.dismiss();
     
     await calculateRouteToDestination(dest);
@@ -101,6 +135,7 @@ export default function NavigationScreen() {
     setDestination(null);
     setRoute(null);
     setShowResults(false);
+    setSearchResults([]);
     Keyboard.dismiss();
   };
 
@@ -114,35 +149,7 @@ export default function NavigationScreen() {
     Keyboard.dismiss();
   };
 
-  const handleSafetyReset = () => {
-    Alert.alert(
-      'Reset Navigation',
-      'This will clear all navigation data and restart.  Continue?',
-      [
-        { text: 'Cancel', style:  'cancel' },
-        {
-          text: 'Reset',
-          style: 'destructive',
-          onPress: () => {
-            // Full reset
-            setDestination(null);
-            setRoute(null);
-            setDestinationInput('');
-            setIsSelectingOnMap(false);
-            setSearchResults([]);
-            setShowResults(false);
-            setIsSearching(false);
-            Keyboard.dismiss();
-            
-            // Retry getting location
-            getCurrentLocationWithRetry();
-          },
-        },
-      ]
-    );
-  };
-
-  if (! hasPermission) {
+  if (!  hasPermission) {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.permissionContainer}>
@@ -172,69 +179,61 @@ export default function NavigationScreen() {
         <MapViewComponent
           currentLocation={location || undefined}
           destination={destination || undefined}
-          route={route?. points}
+          route={route?.points}
           showUserLocation={true}
           onMapPress={handleMapPress}
+          onMapLongPress={handleMapLongPress}
           isSelectingDestination={isSelectingOnMap}
         />
       </View>
 
-      {/* Controls Overlay */}
+      {/* Top Controls Overlay */}
       <View style={styles.overlay}>
-        {/* Top Row:  Search Bar + Safety Button */}
-        <View style={styles.topRow}>
-          {/* Search/Destination Input */}
-          <View style={[styles.searchContainer, { backgroundColor: cardBackground, borderColor }]}>
-            <TextInput
-              style={[styles.searchInput, { color: textColor }]}
-              placeholder="Search destination..."
-              placeholderTextColor={`${textColor}80`}
-              value={destinationInput}
-              onChangeText={setDestinationInput}
-              onSubmitEditing={handleSearch}
-              returnKeyType="search"
-            />
-            {! destination ?  (
-              <View style={styles.buttonGroup}>
-                {destinationInput. trim().length >= 3 && (
-                  <Pressable
-                    style={[styles.iconButton, { backgroundColor: primaryColor }]}
-                    onPress={handleSearch}
-                    disabled={isSearching}
-                  >
-                    <ThemedText style={styles.iconButtonText}>
-                      {isSearching ? '⏳' : '🔍'}
-                    </ThemedText>
-                  </Pressable>
-                )}
+        {/* Search Bar */}
+        <View style={[styles.searchContainer, { backgroundColor: cardBackground, borderColor }]}>
+          <TextInput
+            style={[styles.searchInput, { color: textColor }]}
+            placeholder="Search destination..."
+            placeholderTextColor={`${textColor}80`}
+            value={destinationInput}
+            onChangeText={setDestinationInput}
+            onSubmitEditing={handleSearch}
+            returnKeyType="search"
+            autoCorrect={false}
+            autoCapitalize="none"
+          />
+          {!  destination ?   (
+            <View style={styles.buttonGroup}>
+              {destinationInput.  trim().length >= 3 && (
                 <Pressable
                   style={[styles.iconButton, { backgroundColor: primaryColor }]}
-                  onPress={handleSelectOnMap}
+                  onPress={handleSearch}
+                  disabled={isSearching}
                 >
-                  <ThemedText style={styles.iconButtonText}>🗺️</ThemedText>
+                  <ThemedText style={styles.iconButtonText}>
+                    {isSearching ? '⏳' : '🔍'}
+                  </ThemedText>
                 </Pressable>
-              </View>
-            ) : (
+              )}
               <Pressable
-                style={[styles.iconButton, { backgroundColor: '#F44336' }]}
-                onPress={handleClearRoute}
+                style={[styles.iconButton, { backgroundColor: primaryColor }]}
+                onPress={handleSelectOnMap}
               >
-                <ThemedText style={styles. iconButtonText}>✕</ThemedText>
+                <ThemedText style={styles.iconButtonText}>🗺️</ThemedText>
               </Pressable>
-            )}
-          </View>
-
-          {/* Safety Reset Button */}
-          <Pressable
-            style={[styles. safetyButton, { backgroundColor:  '#FF5252' }]}
-            onPress={handleSafetyReset}
-          >
-            <ThemedText style={styles.safetyButtonText}>🔄</ThemedText>
-          </Pressable>
+            </View>
+          ) : (
+            <Pressable
+              style={[styles.iconButton, { backgroundColor: '#F44336' }]}
+              onPress={handleClearRoute}
+            >
+              <ThemedText style={styles.  iconButtonText}>✕</ThemedText>
+            </Pressable>
+          )}
         </View>
 
-        {/* Search Results */}
-        {showResults && searchResults.length > 0 && (
+        {/* Search Results Dropdown - ONLY show when NOT selecting on map */}
+        {showResults && searchResults.length > 0 && !  isSelectingOnMap && (
           <View style={[styles.searchResults, { backgroundColor: cardBackground, borderColor }]}>
             <FlatList
               data={searchResults}
@@ -255,47 +254,97 @@ export default function NavigationScreen() {
               style={styles.resultsList}
               scrollEnabled={true}
               nestedScrollEnabled={true}
+              keyboardShouldPersistTaps="handled"
             />
           </View>
         )}
 
-        {/* Route Info */}
-        {route && (
-          <View style={styles.routeInfo}>
-            <View style={styles.routeStats}>
-              <StatCard
-                label="Distance"
-                value={routeCalculator.formatDistance(route.distance)}
-                icon="📍"
-                size="small"
-              />
-              <StatCard
-                label="Est. Time"
-                value={routeCalculator.formatTime(route.estimatedTime)}
-                icon="⏱️"
-                size="small"
-              />
-            </View>
+        {/* Selecting on map hint */}
+        {isSelectingOnMap && (
+          <View style={[styles.hintBanner, { backgroundColor: primaryColor }]}>
+            <ThemedText style={styles.hintText}>
+              📍 Tap anywhere on the map to set destination
+            </ThemedText>
           </View>
         )}
       </View>
 
+      {/* Bottom Ride Info Panel (Google Maps style) */}
+      {route && destination && (
+        <View style={[styles.bottomPanel, { backgroundColor: cardBackground, borderColor }]}>
+          <View style={styles.panelHeader}>
+            <View style={styles.panelDestination}>
+              <View style={styles.panelIconContainer}>
+                <ThemedText style={styles.panelIcon}>📍</ThemedText>
+              </View>
+              <View style={styles.panelDestinationText}>
+                <ThemedText style={styles.panelLabel}>Destination</ThemedText>
+                <ThemedText style={styles.  panelAddress} numberOfLines={1}>
+                  {destinationInput || 'Selected Location'}
+                </ThemedText>
+              </View>
+            </View>
+            <Pressable
+              style={[styles.closeButton, { backgroundColor: '#F44336' }]}
+              onPress={handleClearRoute}
+            >
+              <ThemedText style={styles.closeButtonText}>✕</ThemedText>
+            </Pressable>
+          </View>
+          
+          <View style={styles.panelStats}>
+            <View style={styles.panelStatItem}>
+              <View style={styles.panelStatIconContainer}>
+                <ThemedText style={styles.panelStatIcon}>📏</ThemedText>
+              </View>
+              <View>
+                <ThemedText style={styles.panelStatLabel}>Distance</ThemedText>
+                <ThemedText style={styles.panelStatValue}>
+                  {routeCalculator.formatDistance(route.distance)}
+                </ThemedText>
+              </View>
+            </View>
+            
+            <View style={styles.panelDivider} />
+            
+            <View style={styles.panelStatItem}>
+              <View style={styles. panelStatIconContainer}>
+                <ThemedText style={styles. panelStatIcon}>⏱️</ThemedText>
+              </View>
+              <View>
+                <ThemedText style={styles.panelStatLabel}>Est. Time</ThemedText>
+                <ThemedText style={styles.panelStatValue}>
+                  {routeCalculator.formatTime(route.estimatedTime)}
+                </ThemedText>
+              </View>
+            </View>
+          </View>
+
+          <Pressable
+            style={[styles.startButton, { backgroundColor: primaryColor }]}
+            onPress={() => Alert.alert('Start Navigation', 'Navigation feature coming soon!')}
+          >
+            <ThemedText style={styles.startButtonText}>Start Navigation</ThemedText>
+          </Pressable>
+        </View>
+      )}
+
       {/* Loading indicator - centered overlay */}
-      {isLoading && ! location && (
+      {isLoading && !  location && (
         <View style={styles.loadingOverlay}>
           <View style={[styles.loadingBox, { backgroundColor: cardBackground }]}>
-            <ThemedText style={styles. loadingText}>
+            <ThemedText style={styles.loadingText}>
               📍 Getting your location...
             </ThemedText>
           </View>
         </View>
       )}
 
-      {/* Current Location Info */}
-      {location && (
+      {/* Current Location Info - Only show when NO route is active */}
+      {location && ! route && (
         <View style={[styles.locationInfo, { backgroundColor: cardBackground, borderColor }]}>
           <ThemedText style={styles.locationText}>
-            📍 {location.latitude. toFixed(6)}, {location.longitude.toFixed(6)}
+            📍 {location.latitude.  toFixed(6)}, {location.longitude. toFixed(6)}
           </ThemedText>
         </View>
       )}
@@ -315,31 +364,26 @@ const styles = StyleSheet.create({
     top: Platform.OS === 'ios' || Platform.OS === 'android' ? 60 : 20,
     left: 16,
     right: 16,
-  },
-  topRow: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center', // Centers items vertically
+    zIndex: 10,
   },
   searchContainer: {
-    flex: 1,
-    flexDirection: 'row',
+    flexDirection:  'row',
     borderRadius: 12,
     borderWidth: 1,
-    padding: 8,
+    padding: 12,
     gap: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-    minHeight: 60, // Ensures consistent height
-    alignItems: 'center', // Centers content vertically
+    alignItems: 'center',
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
     paddingHorizontal: 8,
+    paddingVertical:   4,
   },
   buttonGroup: {
     flexDirection: 'row',
@@ -350,20 +394,10 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 8,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems:   'center',
   },
   iconButtonText: {
     fontSize: 20,
-  },
-  searchButton: {
-    paddingHorizontal: 20,
-    paddingVertical:  10,
-    borderRadius: 8,
-    justifyContent: 'center',
-  },
-  searchButtonText: {
-    color: '#fff',
-    fontWeight: '600',
   },
   searchResults: {
     marginTop: 8,
@@ -375,9 +409,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+    overflow: 'hidden',
   },
   resultsList: {
-    maxHeight:  250,
+    maxHeight: 250,
   },
   resultItem: {
     flexDirection: 'row',
@@ -396,27 +431,134 @@ const styles = StyleSheet.create({
   resultText: {
     fontSize: 14,
   },
-  routeInfo: {
-    marginTop: 12,
+  hintBanner:   {
+    marginTop: 8,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
   },
-  routeStats: {
-    flexDirection: 'row',
-    gap: 12,
+  hintText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
-  safetyButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems:  'center',
+  bottomPanel: {
+    position: 'absolute',
+    bottom: 0,
+    left:   0,
+    right: 0,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderTopWidth: 1,
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ?   34 : 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity:   0.3,
+    shadowRadius: 5,
+    elevation: 10,
+    zIndex: 5,
+    overflow: 'visible',
   },
-  safetyButtonText: {
-    fontSize: 24,
+  panelHeader: {
+    flexDirection:   'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    overflow: 'visible',
+  },
+  panelDestination: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 12,
+    overflow: 'visible',
+  },
+  panelIconContainer: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+    overflow: 'visible',
+  },
+  panelIcon: {
+    fontSize: 26,
+    lineHeight: 32,
+    textAlign: 'center',
+  },
+  panelDestinationText: {
+    flex: 1,
+  },
+  panelLabel: {
+    fontSize: 12,
+    opacity: 0.7,
+    marginBottom: 2,
+  },
+  panelAddress: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems:   'center',
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontSize:   18,
+    fontWeight: 'bold',
+  },
+  panelStats: {
+    flexDirection:   'row',
+    marginBottom: 16,
+    paddingVertical: 12,
+    overflow: 'visible',
+  },
+  panelStatItem:   {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    overflow: 'visible',
+  },
+  panelStatIconContainer:  {
+    width: 28,
+    height: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'visible',
+  },
+  panelStatIcon:   {
+    fontSize: 22,
+    lineHeight: 28,
+    textAlign: 'center',
+  },
+  panelStatLabel:   {
+    fontSize: 12,
+    opacity: 0.7,
+    marginBottom: 2,
+  },
+  panelStatValue:   {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  panelDivider: {
+    width: 1,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    marginHorizontal: 16,
+  },
+  startButton: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  startButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
   },
   locationInfo: {
     position: 'absolute',
@@ -427,41 +569,43 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     alignItems: 'center',
+    zIndex: 1,
   },
   locationText: {
     fontSize: 12,
     fontWeight: '500',
   },
   permissionContainer: {
-    flex:  1,
+    flex:   1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   permissionText: {
-    fontSize: 18,
+    fontSize:  18,
     marginBottom: 20,
     textAlign: 'center',
   },
   button: {
     paddingHorizontal: 24,
-    paddingVertical:  12,
-    borderRadius:  8,
+    paddingVertical:   12,
+    borderRadius:   8,
   },
   buttonText: {
-    color:  '#fff',
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
   loadingOverlay: {
     position: 'absolute',
     top: 0,
-    left:  0,
+    left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor:   'rgba(0,0,0,0.3)',
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems:  'center',
+    zIndex: 20,
   },
   loadingBox: {
     padding: 24,
@@ -472,7 +616,7 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
-  loadingText: {
+  loadingText:   {
     fontSize: 16,
     fontWeight: '600',
   },

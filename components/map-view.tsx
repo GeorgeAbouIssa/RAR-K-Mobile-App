@@ -4,7 +4,7 @@
 
 import React, { useRef, useEffect } from 'react';
 import { StyleSheet, View, Pressable } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_DEFAULT, MapPressEvent } from 'react-native-maps';
+import MapView, { Marker, Polyline, PROVIDER_DEFAULT, MapPressEvent, LongPressEvent } from 'react-native-maps';
 import { ThemedView } from './themed-view';
 import { ThemedText } from './themed-text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -17,6 +17,7 @@ interface MapViewComponentProps {
   route?: { lat: number; lng: number }[];
   showUserLocation?: boolean;
   onMapPress?: (coordinate: LocationCoords) => void;
+  onMapLongPress?: (coordinate: LocationCoords) => void;
   isSelectingDestination?: boolean;
 }
 
@@ -26,6 +27,7 @@ export function MapViewComponent({
   route,
   showUserLocation = true,
   onMapPress,
+  onMapLongPress,
   isSelectingDestination = false,
 }: MapViewComponentProps) {
   const colorScheme = useColorScheme();
@@ -38,7 +40,7 @@ export function MapViewComponent({
     if (currentLocation && mapRef.current) {
       mapRef.current.animateToRegion({
         latitude: currentLocation.latitude,
-        longitude: currentLocation.longitude,
+        longitude: currentLocation. longitude,
         latitudeDelta: 0.0922,
         longitudeDelta: 0.0421,
       }, 1000);
@@ -54,7 +56,7 @@ export function MapViewComponent({
           { latitude: destination.latitude, longitude: destination. longitude },
         ],
         {
-          edgePadding: { top: 100, right: 50, bottom: 100, left:  50 },
+          edgePadding: { top: 100, right: 50, bottom: 300, left: 50 },
           animated: true,
         }
       );
@@ -65,7 +67,7 @@ export function MapViewComponent({
   const initialRegion = {
     latitude: currentLocation?.latitude || 33.8886, // Beirut, Lebanon default
     longitude: currentLocation?.longitude || 35.4955,
-    latitudeDelta:  0.0922,
+    latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   };
 
@@ -87,6 +89,13 @@ export function MapViewComponent({
     }
   };
 
+  const handleMapLongPress = (event: LongPressEvent) => {
+    if (onMapLongPress) {
+      const { latitude, longitude } = event.nativeEvent. coordinate;
+      onMapLongPress({ latitude, longitude });
+    }
+  };
+
   return (
     <ThemedView style={styles.container}>
       <MapView
@@ -99,6 +108,7 @@ export function MapViewComponent({
         userInterfaceStyle={isDark ? 'dark' : 'light'}
         followsUserLocation={false}
         onPress={handleMapPress}
+        onLongPress={handleMapLongPress}
       >
         {/* Current location marker */}
         {currentLocation && (
@@ -151,26 +161,15 @@ export function MapViewComponent({
             style={[styles.myLocationButton, { backgroundColor: primaryColor }]}
             onPress={handleMyLocation}
           >
-            <ThemedText style={styles. locationIcon}>📍</ThemedText>
+            <ThemedText style={styles.locationIcon}>📍</ThemedText>
           </Pressable>
-        </View>
-      )}
-
-      {/* Selection mode indicator */}
-      {isSelectingDestination && (
-        <View style={styles.selectionIndicator}>
-          <View style={[styles.selectionBadge, { backgroundColor: primaryColor }]}>
-            <ThemedText style={styles.selectionText}>
-              📍 Tap map to set destination
-            </ThemedText>
-          </View>
         </View>
       )}
     </ThemedView>
   );
 }
 
-const styles = StyleSheet. create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -178,12 +177,12 @@ const styles = StyleSheet. create({
     width: '100%',
     height: '100%',
   },
-  buttonContainer: {
+  buttonContainer:  {
     position: 'absolute',
     bottom: 100,
     right: 16,
   },
-  myLocationButton: {
+  myLocationButton:  {
     width: 56,
     height: 56,
     borderRadius: 28,
@@ -194,30 +193,11 @@ const styles = StyleSheet. create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+    overflow: 'visible',
   },
   locationIcon: {
-    fontSize: 28,
-  },
-  selectionIndicator:  {
-    position: 'absolute',
-    top: 20,
-    left: 16,
-    right: 16,
-    alignItems: 'center',
-  },
-  selectionBadge: {
-    paddingHorizontal: 16,
-    paddingVertical:  12,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  selectionText: {
-    color: '#fff',
-    fontSize:  14,
-    fontWeight:  '600',
+    fontSize: 24,
+    lineHeight: 28,
+    textAlign: 'center',
   },
 });
